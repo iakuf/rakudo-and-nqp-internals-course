@@ -201,115 +201,112 @@ Thus, while some of Rakudo is accessible if you know Perl 6, knowing NQP -
 both as a langauge and as a compiler toolchain - is the gateway to working
 with most of the rest of Rakudo.
 
-# The NQP language
+# NQP 语言 
 
+*它不是 Perl 6 ， 但它可以很好的创建 Perl 6。*
 *It's Not Quite Perl 6, but quite OK for building Perl 6*
 
-## Design goals
+## 设计目标 
 
-NQP is designed to be...
+NQP 被设计成. . .
 
-* Ideal for writing compiler-related things in
-* Almost a subset of Perl 6
-* Much simpler to compile and optimize than Perl 6
+* 非常适合写编译器相关的东西 
+* Perl 6 的一个完整子集
+* 比 Perl 6 可以更加简单的编译和优化 
 
-Of note, it avoids:
+值得注意的是，它避免了 ：
 
-* Assignment
+* 变量之类的分配
 * Flattening and laziness
-* Operators being multi-dispatch (so, no overloading)
-* Having lots of built-ins
+* 操作符的多调度 (so, 没有重载)
+* 有大量的内置插件的
 
-## Literals
+## 常量
 
-Integer literals
+整型常量 
 
     0       42      -100
 
-Floating point literals (no Rat in NQP!)
+浮点常量 (no Rat in NQP!)
 
     0.25    1e10    -9.9e-9
 
-String literals
+字符常量
 
     'non-interpolating'         "and $interpolating"
     q{non-interpolating}        qq{and $interpolating}
     Q{not even backslashes}
 
-## Sub calls
+## 函数 
 
-In NQP, these always need the parentheses:
+在 NQP 中，这些都需要括号： 
 
     say('Mushroom, mushroom');
 
-Like in Perl 6, this adds an `&` to the name and does a lexical lookup of the
-routine.
+在 Perl 6,这会增加一个 & 到名字的前面并执行子函数的词法查找.
 
 However, there is no list-op calling syntax:
 
     plan 42;    # "Confused" parse error
     foo;        # Does not call foo; always a term
 
-This is perhaps the most common NQP beginner mistake.
+这也许是最常用的 NQP 初学者的错误。 
 
-## Variables
+## 变量
 
-Can be `my` (lexical) or `our` (package) scoped:
+这可以是词法的 my (lexical) 或者包 our (package) 空间:
 
     my $pony;
     our $stable;
 
-The usual set of sigils are available:
+有一些前缀符号可以选择:
 
     my $ark;                # Starts as NQPMu
     my @animals;            # Starts as []
     my %animal_counts;      # Starts as {}
     my &lasso;              # Starts as NQPMu
 
-Dynamic variables are also supported:
+动态变量也支持:
 
     my @*blocks;
 
-## Binding
+## 绑定 Binding
 
-NQP does not offer the `=` assignment operator. Only the `:=` binding operator
-is provided. This frees NQP from the complexity of Perl 6 container semantics.
-
-Here's a simple scalar example:
+NQP 没有我们常用的 = 分配操作符. 只有提供了 := 绑定操作符. 
+这让 NQP 大多的解放了，不用实现 Perl 6 那么复杂的 容器上的语义
 
     my $ast := QAST::Op.new( :op('time_n') );
 
 ## Binding and arrays
 
-Note that binding has **item assignment precedence**, so you can not write:
+注意绑定操作的元素是有 **优先级** ， 所以你不能这样写:
 
     my @states := 'start', 'running', 'done';    # Wrong!
 
-Instead, this must be expressed as one of:
+你要照下面这样来写:
 
     my @states := ['start', 'running', 'done'];  # Fine
     my @states := ('start', 'running', 'done');  # Same thing
     my @states := <start running done>;          # Cutest
 
-## Natively typed variables
+## 原生的变量类型
 
-At present, NQP doesn't really support type constraints on variables. The
-exception is that it will pay attention to **native types**.
+目前，NQP并不真正支持的变量类型约束。
+但是，它会关心自身的类型 
 
     my int $idx := 0;
     my num $vel := 42.5;
     my str $mug := 'coffee'; 
 
-**Note:** in NQP, binding is used on native types! This is illegal in Perl 6,
-where natives can only be assigned. It's all rather artificial, though, in so
-far as an assignment to a native type in Perl 6 actually compiles down to the
-`nqp::bind(...)` op!
+**Note:** 在 NQP 中, 绑定是使用的原生的类型！这在 Perl 6 中是
+不能这样的. Perl 6, 这些原生的类型只能分配。这都是手工关联的。
+不过， 只要使用原生的类型来分配变量 ， 其实后端会使
+用 nqp::bind(..) 的操作.
 
-## Control flow
+## 流程控制
 
-Most of the Perl 6 conditional and looping constructs also exist in NQP. As in
-real Perl 6, parentheses are not required around the conditional, and pointy
-blocks can be used also. Loop constructs support `next`/`last`/`redo`.
+大多的 Perl 6 中的条件和循环结构在 NQP 中都存在， 在实际的 Perl 6 中
+条件是不需要周边的括号的。循环结构 next/last/redo 也支持.
 
     if $optimize {
         $ast := optimize($ast);
@@ -322,11 +319,10 @@ blocks can be used also. Loop constructs support `next`/`last`/`redo`.
 
 **Missing:** loop, given/when, FIRST/NEXT/LAST phasers
 
-## Subroutines
+## 子函数
 
-Declared much like in Perl 6, however the parameter list is mandatory even if
-taking no parameters. You may either `return` or use the last statement as an
-implicit return value.
+函数声明很象 Perl 6。但参数列表是必须有的，即使不使用任何
+参数。 你可以返回或者使用最后一条语句作为一个隐含的返回。 
 
     sub mean(@numbers) {
         my $sum;
@@ -336,12 +332,12 @@ implicit return value.
 
 Slurpy parameters are also available, as is `|` to flatten argument lists.
 
-**Note:** parameters can get type constraints, but as with variables, only the
-native types count at present. (Exception: multiple dispatch; more later.)
+**Note:** 参数可以使用类型约束， 但是当使用变量时， 目前只能使用原
+生所支持的类型. (multiple dispatch 会更加晚).
 
 ## Named arguments and parameters
 
-Named parameters are supported:
+支持命名的参数:
 
     sub make_op(:$name) {
         QAST::Op.new( :op($name) )
@@ -356,7 +352,7 @@ pairs - only make sense in the context of an argument list.
 
 ## Blocks and pointy blocks
 
-Pointy blocks are available with the familiar Perl 6 syntax:
+尖箭头的用法和 Perl 6 的语法一样:
 
     sub op_maker_for($op) {
         return -> *@children, *%adverbs {
@@ -371,8 +367,9 @@ an implicit `$_` argument like in Perl 6!
 
 ## Built-ins and nqp:: ops
 
-NQP has relatively few built-ins. However, it provides full access to the NQP
-instruction set. Here are a few common instructions that are useful to know.
+NQP 具有相对较少的内置插件。然而，它提供了完整的访问NQP指令集。
+这里是需要了解的一些常见的指令。 
+
 
     # On arrays
     nqp::elems, nqp::push, nqp::pop, nqp::shift, nqp::unshift
@@ -385,13 +382,13 @@ instruction set. Here are a few common instructions that are useful to know.
 
 We'll discover more during the course.
 
-## Exception handling
+## 异常处理 
 
-An exception can the thrown using the `nqp::die` instruction:
+异常可以通过 nqp::die 抛出 :
 
     nqp::die('Oh gosh, something terrible happened');
 
-The `try` and `CATCH` constructs are also available, though unlike in full
+在这 try 和 catch 结构也可以使用， 但不象完整的 Perl 6, though unlike in full
 Perl 6 you are not expected to smart-match inside of the `CATCH`; once you're
 in there, it's considered that the exception is caught (modulo an explicit
 `nqp::rethrow`).
@@ -403,8 +400,8 @@ in there, it's considered that the exception is caught (modulo an explicit
 
 ## Classes, attributes and methods
 
-Declared with the `class`, `has` and `method` keywords, as in Perl 6. A class may
-be lexical (`my`) or package (`our`) scoped (the default).
+声明 class, has 和 method 有这些关键字, 在 Perl 6 中.
+一个类可以是词法 (my) 或者是包 package (our) 范围 (默认包).
 
     class VariableInfo {
         has @!usages;
@@ -418,28 +415,26 @@ be lexical (`my`) or package (`our`) scoped (the default).
         }
     }
 
-The `self` keyword is also available, and methods can have parameters just
-like subs.
+self 关键字也可以使用， 方法也可以象子函数一样有参数
 
-## More on attributes
+## 更多的属性
 
-NQP has no automatic accessor generation, so you can't do:
+NQP has 不会自动的生成存取用的访问器 ，所以你不能这样：
 
     has @.usages; # Not supported
 
-Natively typed attributes are supported, and will be efficiently stored
-directly in the object body. Any other types are ignored.
+原生的类型系统是支持的， 这会直接给内容存储到对象本身去。
+任何其它的类型是会被忽略的。
 
     has int $!flags;
 
-Unlike in Perl 6, the default constructor can be used to set the private
-attributes, since that's all we have.
+不同于 Perl 6, 这默认的构造函数可以设置私有属性
 
     my $vi := VariableInfo.new(usages => @use_so_far);
 
 ## Roles (1)
 
-NQP supports roles. Like classes, roles can have attributes and methods.
+NQP 支持 roles. 象 classes 一样， roles 有自己的属性和方法
 
     role QAST::CompileTimeValue {
         has $!compile_time_value;
@@ -459,26 +454,25 @@ NQP supports roles. Like classes, roles can have attributes and methods.
 
 ## Roles (2)
 
-A role can be composed into a class using the `does` trait:
+role 是可以象类一样使用象 `does`  之类的一些特性
 
     class QAST::WVal is QAST::Node does QAST::CompileTimeValue {
         # ...
     }
 
-Alternatively, the MOP can be used to mix a role into an individual object:
+另外, 这 MOP 可以让 role 混到单个对象中使用. 
 
     method set_compile_time_value($value) {
         self.HOW.mixin(self, QAST::CompileTimeValue);
         self.set_compile_time_value($value);
     }
 
-## Multiple dispatch
+## 多重调度
 
-Basic multiple dispatch is supported. It is a subset of the Perl 6 semantics,
-using a simpler (but compatible) version of the candidate sorting algorithm.
+支持基本的多重调度， 这是 Perl 6 语义的子集， 这是一个使用简单
+（但兼容）的候选排序算法的版本。
 
-Unlike in full Perl 6, you **must write a `proto`** sub or method; there is
-no auto-generation.
+不同于 Perl 6 , 你 必需用 **原型的函数和方法** ;这并不会自动生成.
 
     proto method as_jast($node) {*}
     
