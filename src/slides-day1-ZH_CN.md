@@ -798,7 +798,7 @@ http://irclog.perlgeek.de/perl6/2013-07-19/text
 
 ## The query parser (1)
 
-We either parse an `INSERT` or `SELECT` query.
+我们需要解析 `INSERT` 或者 `SELECT` 的查询.
 
     token TOP {
         ^ [ <insert> | <select> ] $
@@ -813,45 +813,42 @@ We either parse an `INSERT` or `SELECT` query.
         [ 'WHERE' <pairlist> ]?
     }
 
-Note that `:s` turns on auto-`<.ws>` insertion.
+注意这的 `:s` 其实就是 `<.ws>`。
 
 ## The query parser (2)
 
-The `pairlist` and `keylist` rules are defined as follows.
+这的 `pairlist` 和  `keylist` 规则定义如下. 
 
     rule pairlist { <pair>+ % [ ',' ] }
     rule pair     { <key> '=' <value>  }
     rule keylist  { <key>+ % [ ',' ] }
     token key     { \w+ }
 
-The interesting new syntax here is **`%`**. It attaches to the last quantifier,
-and indicates that something (in this case, a comma) should come between each
-of the quantified elements.
+这的 **`%`** 是一个有意思的语法. 它是最后一个符号 (在这, 是一个逗号) 的量词， 指出在每个符号之间有一些东西。
 
-The square brackets around the comma literal are to ensure `<.ws>` calls are
-generated as part of the separator.
+括号中的符号是一个逗号， 这是为了分隔每一个 `<.ws>` 时所需要调用的一个分隔符.
 
 ## The query parser (3)
 
-Finally, here is how values can be parsed.
+最后，什么样的值可以被解析。
 
     token value { <integer> | <string> }
     token integer { \d+ }
     token string  { \' <( <-[']>+ )> \' }
 
-Notice the use of the **`<(` and `)>`** syntax. These indicate the limits of
-what should be captured by the `string` token overall, meaning that the quote
-characters don't end up being captured.
+注意这是使用的 **`<(` and `)>`**  的语法。 这些会限制全部 token 捕获的是 `string`，这意味着引号字符不最终被抓获。
+
+meaning that the quote characters don't end up being captured.
 
 ## Alternations and LTM (1)
 
-Recall the top rule:
+是我们的最上层的 TOP 规则.
 
     token TOP {
         ^ [ <insert> | <select> ] $
     }
 
-If we trace the parsing of a `SELECT` query, we see something like this:
+如果我们看 `SELECT` 查询的解析状态，我们可以见到下面这些:
 
     Calling parse
       Calling TOP
@@ -859,38 +856,32 @@ If we trace the parsing of a `SELECT` query, we see something like this:
           Calling ws
           Calling keylist
 
-So how did it know not to bother trying `<insert>`?
+所以它怎么知道不去尝试 `<insert>`?
 
 ## Alternations and LTM (2)
 
-The answer is **Transitive Longest Token Matching**. The grammar engine builds
-an NFA (state machine) that, upon encountering an alternation, sorts the
-branches by the number of characters they would match. It then tries them
-longest first, not bothering with those it realizes are impossible.
+答案是 **Transitive Longest Token Matching**. grammar 的引擎建立 NFA (状态机), 
+当遇到要交替的规则，会先得到各种分支他们将匹配的数目字。接著取它们最长的.
 
 ## Alternations and LTM (3)
 
-It doesn't just look at a rule in isolation. Instead, it **considers subrule
-calls transitively**. This means entire call chains that lead to something
-impossible can be eliminated.
+它不只是看起来象个隔离规则。它会考虑到子规则调用传递,在整个调用链中， 给一些不可能的淘汰。
 
 ![20%](eps/ltm-transformation.eps)
 
-It is bounded by non-declarative constructs (such as a lookahead, a code block,
-or a call to the default `ws` rule) or recursive subrule calls.
+它是由没声明的子规则引用所构造的 (such as a lookahead, a code block, or a call to the default `ws` rule)
 
 ## A slight pain point
 
-One annoyance we have is that our `TOP` action method ends up looking like this:
+我们有时可能想有下面这样的 `TOP` 动作的方法来找到象这种:
 
     method TOP($/) {
         make $<select> ?? $<select>.ast !! $<insert>.ast;
     }
 
-It's easy to see how this will become painful to maintain once we add `UPDATE`
-and `DELETE` queries. It's even more painful if the grammar is subclassed.
+这非常容易看出， 当我们加入了  `UPDATE` 和  `DELETE`  的查询时， 这时 grammar 的子类更加复杂.
 
-Our `value` action method is similar:
+我们的 `value` 的动作方法也一样:
 
     method value($/) {
         make $<integer> ?? $<integer>.ast !! $<string>.ast;
@@ -898,24 +889,22 @@ Our `value` action method is similar:
 
 ## Protoregexes
 
-The answer to our woes is **protoregexes**. They provide **a more extensible
-way to express an alternation**.
+解决上面的方法是使用 **protoregexes**. 这提供了扩展的方式来表达条件的交替.
 
     proto token value {*}
     token value:sym<integer> { \d+ }
     token value:sym<string>  { \' <( <-[']>+ )> \' }
 
-Essentially, we introduce a new syntactic category, `value`, and then define
-difference cases of it. A call like `<value>` will use LTM to sort and try the
-candidates - just like an alternation did.
+基本上，我们引入一个新的句法的范畴，对于 `value`, 我们根据不同情况来定义。
+这个调用 `<value>` 来使用 LTM 排序和尝试不同的候选 - 就象就交替时做的一样.
 
 ## Protoregexes and action methods (1)
 
-Back in the actions class, we need to update our action methods to match the
-names of the rules:
+所以在 actions class 中， 我们需要更新我们的匹配到规则时的动作方法.
 
     method value:sym<integer>($/) { make ~$/ }
     method value:sym<string>($/)  { make ~$/ }
+
 
 However, **we do not need an action method for `value` itself**. Anything that
 looks at `$<value>` will be provided with the match object from the successful
@@ -923,7 +912,7 @@ candidate - and thus `$<value>.ast` will obtain the correct thing.
 
 ## Protoregexes and action methods (2)
 
-For example, after we refactor queries:
+例如，当我们重构查询：
 
     token TOP { ^ <query> $ }
     
@@ -936,7 +925,7 @@ For example, after we refactor queries:
         [ 'WHERE' <pairlist> ]?
     }
 
-The `TOP` action method can then simply be:
+这个 `TOP` 动作的方法变成简单的:
 
     method TOP($/) {
         make $<query>.ast;
@@ -944,7 +933,7 @@ The `TOP` action method can then simply be:
 
 ## keylist and pairlist
 
-These are two boring action methods, included for completeness.
+这是两个枯燥的行动的方法，包括完整性。
 
     method pairlist($/) {
         my %pairs;
@@ -962,10 +951,9 @@ These are two boring action methods, included for completeness.
         make @keys;
     }
 
-## Interpreting a query
+## 解释查询  
 
-So how do we ever run the query? Well, here's the action method for `INSERT`
-queries:
+那么我们如何运行查询？嗯，这里的 `INSERT` 的动作方法查询时：
 
     method query:sym<insert>($/) {
         my %to_insert := $<pairlist>.ast;
@@ -975,9 +963,7 @@ queries:
         };
     }
 
-Here, instead of a data structure, we `make` a closure that takes the current
-database state (an array of hashes, where each hash is a row) and push the
-hash produced by the `pairlist` action method onto it.
+在这， 代替数据结构， 我们的 `make` 闭包会取得当前数据库的状态 (哈希的数组， 每个哈希是一行)。然后推一个由 `pairlist` 动作的方法产生的哈希进去。
 
 ## The SlowDB class itself
 
