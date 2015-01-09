@@ -484,34 +484,30 @@ role 是可以象类一样使用象 `does`  之类的一些特性
         # compile a QAST::Block
     }
 
-## Exercise 1
+## 练习 1
 
-A chance to get acquainted with the basic NQP syntax, if you have not done so
-already.
+我们有机会认识 NQP 的基本语法 , if you have not done so already.
 
-Also a chance to learn how common mistakes look, so you can recognize them if
-you encounter them in real work. :-)
+我们可以学习如何看的常见的错误是, 如果我们在工作中真的见到了这个.
 
 ## Grammars
 
-While in many areas NQP is quite limited compared to full Perl 6, grammars are
-supported almost to the same level. This is because NQP grammars have to be
-good enough to cope with parsing Perl 6 itself.
+在很多地方 NQP 比起完整的 Perl 6 是相关的有限, 但 grammars 支持
+达到了相同的水平， 这是因为 NQP 中的 grammars 必须相当好， 
+这样才可以解析 Perl 6 本身.
 
-Grammars are a kind of class, and are introduced using the `grammar` keyword.
+Grammars 是一种类， 我们在这对如何使用 grammar 的关键字的语法进行介绍.
 
     grammar INIFile {
     }
 
-In fact, grammars are so like classes that in NQP they are implemented by the
-same meta-object. The difference is what they inherit from by default and what
-you put inside of them.
+事实上， grammars 之所以这么象一个类是因为， 它在 NQP 中是由相同的元对象实现的.
 
 ## INI Files
 
-As an initial, simple example, we'll consider parsing INI files.
+作为一个初级的简单的例子, 我们来解析 INI 文件.
 
-Keys with values, potentially arranged into sections.
+键和值, 真实例子的一部分.
 
     name = Animal Facts
     author = jnthn
@@ -524,39 +520,37 @@ Keys with values, potentially arranged into sections.
     desc = The cow of the sea
     cuteness = -10
 
-## The overall approach
+## 总的方针
 
-A grammar contains a set of rules, declared with the keywords `token`, `rule`
-or `regex`. Really, they are just like methods, but written in rule syntax.
+grammar 包含一组 rules, token, rule 和 regex 之类的
+关键字来声明. 其实， 这就象对象的方法, 只是用它来写成各种规则
 
     token integer { \d+ }       # one or more digits
     token sign    { <[+-]> }    # + or - (character class)
 
-More complex rules are made up by calling existing ones:
+更复杂的规则是由通过调用现有:
 
     token signed_integer { <sign>? <integer> }
 
 These calls to other rules can be quantified, placed in alternations, and
 so forth.
 
-## Aside: grammars and regexes
+## Aside: grammars 和正则表达式 
 
-At this point, you may be wondering how grammars and regexes relate. After
-all, a grammar seems to be made up of regex-like things.
-
-There is also a `regex` declarator, which can be used in a grammar.
+在这个点上, 你也许想知道grammars 和 正则 regexes 的关系，
+毕竟 grammar 看起来其实就是正则表达式之类的东西。
+    
+你在 grammar 中还可以见到一个叫 regex  关键字的说明符.
 
     regex email { <[\w.-]>+ '@' <[\w.-]>+ '.' \w+ }
 
-The key difference is that **a `regex` will backtrack**, whereas a `rule` or
-`token` will not. Supporting backtracking involves keeping lots of state, and
-for a complex grammar parsing a lot of input, this would quickly use up large
-amounts of memory! Big languages tend to avoid backtracking in their parsers.
+这有个关键的不同， 就是 ** `regex` 是会回溯的**，而 `rule` 和 `token` 是不会的. 
+支持回溯需要保持大量的状态， 对于复杂的大量的输入，这会迅速消耗掉大
+量的内存! 大型语言的解析倾向于避免使用回溯的解析.
 
-## Aside: regexes in NQP
+## Aside: NQP 中的正则
 
-NQP does provide support for regexes in the normal sense too, for smaller scale
-things.
+NQP 提供通常意义下的正则表达式的支持
 
     if $addr ~~ /<[\w.-]>+ '@' <[\w.-]>+ '.' \w+/ {
         say("I'll mail you maybe");
@@ -565,27 +559,26 @@ things.
         say("That's no email address!");
     }
 
-This evaluates to the match object.
+这会检测匹配到的对象.
 
-## Parsing entries
+## 解析条目的规则 Entry
 
-An entry has a key (some word characters) and a value (everything up to the
-end of the line):
+我们来写每个规则，其中规则 key (是一些单词) 规则 value ( 到行的结束）
 
     token key   { \w+ }
     token value { \N+ }
 
-Together, they form an entry:
+放到一起，他们组成了一个规则 entry:
 
     token entry { <key> \h* '=' \h* <value> }
 
-The `\h` matches any horizontal whitespace (space, tab, etc.). The `=` must be
-quoted, as anything non-alphanumeric is treated as regex syntax in Perl 6.
-
+这的 `\h` 匹配任何本行上的空白 (空格, 制表符, etc.). 
+这的 `=` 必须使用引号， 
+    
 ## Start at the `TOP`
 
-The entry point to a grammar is the special rule, `TOP`. For now, we look for
-the entire file to be lines containing an entry or simply nothing.
+在 grammar 对条目的解析中特殊规则是 TOP. 现在我们看到，面的规则是用来查找每个行中是否可以匹配到 entry 规则
+或者没有任何东西。
 
     token TOP {
         ^
@@ -596,13 +589,11 @@ the entire file to be lines containing an entry or simply nothing.
         $
     }
 
-Note that in Perl 6, square brackets are a non-capturing group (the Perl 5
-`(?:...)`), not a character class.
+注意在 Perl 6 中, 方括号是一个非捕获组 (相当于 Perl 5 `(?:...)`),
 
-## Trying our grammar
+## 测试我们的 grammar
 
-We can try our grammar out by calling the `parse` method on it. This returns a
-**match object**.
+我们可以通过它调用我们的语法分析 `parse` 方法。这是返回一个 **匹配对象**. 
 
     my $m := INIFile.parse(Q{
     name = Animal Facts
@@ -611,15 +602,14 @@ We can try our grammar out by calling the `parse` method on it. This returns a
 
 ![40%](eps/example-match-object.eps)
 
-## Iterating through the results
+## 遍历结果
 
-Each call to a rule yields a match object, and the `<entry>` call syntax will
-capture it into the match object.
+每次调用一个规则产生一个匹配到的对象，会调用 `<entry>` 规则来
+捕获到匹配的对象。
 
-Since we matched many entries we get an array under the `entry` key in the match
-object.
+我们会给匹配到的 key 规则和 value 规则中的内容存 entry 的数组上
 
-Thus, we can do loop over it to get each of the entries:
+我们可以循环从 entries 中取得每个内容
 
     for $m<entry> -> $entry {
         say("Key: {$entry<key>}, Value: {$entry<value>}");
