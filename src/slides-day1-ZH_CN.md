@@ -617,13 +617,11 @@ NQP 提供通常意义下的正则表达式的支持
 
 ## Tracing our grammar
 
-NQP comes with some built-in support for tracing where grammars go. It's not a
-full-blown debugger, but it can be helpful to see how far a grammar gets before
-it fails. It is turned on with:
+NQP 支持内置的跟踪的语法。 它不是一个成熟的调试器， 但可以见到 grammar 失败前做的事情:
 
     INIFile.HOW.trace-on(INIFile);
 
-And produces output like:
+会生成如下的信息:
 
     Calling parse
       Calling TOP
@@ -636,23 +634,21 @@ And produces output like:
 
 ## token vs. rule
 
-When we use `rule` in place of `token`, any whitespace after an atom is turned
-into a **non-capturing** call to `ws`. That is:
+我们使用 `rule` 来替换 `token`, 可以给任何空白变成一个 **non-capturing** 的 `ws`.
 
     rule entry { <key> '=' <value> }
 
-Is the same as:
+下面是一样的：
 
     token entry { <key> <.ws> '=' <.ws> <value> <.ws> } # . = non-capturing
 
-We inherit a default `ws`, but we can supply our own too:
+这继承默认的 `ws`, 当然也可以使用我们自己的:
 
     token ws { \h* }
 
 ## Parsing sections (1)
 
-A section has a heading and many entries. However, the top-level can also have
-entries. Thus, it makes sense to factor this out.
+段中有很多的标题和条目. 但是顶层也有条目。 所以这也需要处理。
 
     token entries {
         [
@@ -661,7 +657,7 @@ entries. Thus, it makes sense to factor this out.
         ]+
     }
 
-The TOP rule can then become:
+这个 TOP 的规则变成了:
 
     token TOP {
         ^
@@ -672,35 +668,34 @@ The TOP rule can then become:
 
 ## Parsing sections (2)
 
-Last but not least here is the section token:
+最后，但相当重要的是块的 token:
 
     token section {
         '[' ~ ']' <key> \n
         <entries>
     }
 
-The `~` syntax is cute. The first line is like:
+这个 `~` 的语法很可爱。 其实第一行是这样:
 
     '[' <key> ']' \n
 
-However, failure to find the closing `]` produces a descriptive error message
-instead of just failing to match.
+然而，当我们找到没有闭合的 `]` 时, 我们需要提供错误信息， 并不是没匹配。
 
 ## Actions
 
-Parsing a grammar can happen using an **actions class**; its methods have names
-matching some or all rules in the grammar.
+在 grammar 解析中可以使用 **actions class** 来做一些其它的事情; 
 
-The methods are called **after a successful match of the corresponding rule**.
+这些方法有一些名字，匹配grammar 规则中的一些或者全部.
+
+**相应的规则被匹配后** 会调用相应的方法.
 
 ![20%](eps/top-down-bottom-up.eps)
 
-In the Rakudo and NQP compilers, **actions construct QAST trees**. For this
-example, we'll do something a little simpler.
+在 Rakudo 和 NQP 编译器，**动作来构建 QAST 树**。 在这个例子中， 我们会做一些简单的东西.
 
 ## Actions example: aim
 
-Given an INI file like:
+给我们一个 INI 文件， 象下面这样:
 
     name = Animal Facts
     author = jnthn
@@ -709,16 +704,13 @@ Given an INI file like:
     desc = The smartest and cutest
     cuteness = 100000
 
-We'd like to use the actions class to build up a **hash of hashes**. The top
-level hash will contain the keys `cat` and `_` (the underscore collecting any
-keys not in a section). The values are hashes of the key/value pairs in that
-section.
+我们想使用 actions class 类来创建 **hash of hashes**. 这个顶层 hash 包含键 `cat` 和 `_` 
+(在这的下划线收集任何不在一个块中的键)。这的值是块中的哈希键值对。
 
 ## Actions example: entries
 
-Action methods take the match object of the just-matched rule as a parameter.
-It is convenient to put it into `$/` so we can use the `$<entry>` sugar (which
-maps to `$/<entry>`).
+Action methods 的方法会得到匹配的对象. 这很容易放进  `$/` 所以我们使用
+`$<entry>`  的语法糖，它是映射到 `$/<entry>`。
 
     class INIFileActions {
         method entries($/) {
@@ -730,14 +722,13 @@ maps to `$/<entry>`).
         }
     }
 
-Finally, **`make`** attaches the produced hash to `$/`. This is so the `TOP`
-action method will be able to retrieve it while building the top-level hash.
+最后， 这个 **`make`** 会给生成的哈希关联到 `$/` 上。 所以这个 `TOP` 的动作的方法会
+找到所有的顶层的哈希。
 
 ## Actions example: TOP
 
-The `TOP` action method builds the top-level hash out of the hashes made by
-the `entries` action method. While `make` attaches something to `$/`, the
-**`.ast`** method retrieves what was attached to some other match object.
+这个 `TOP` 的动作的方法调用会创建最顶层哈希包含着 `entries` 动作方法所生成的哈希。
+这的 `make` 会给其它的这些加入到 `$/`, 这个 **`.ast`** 的方法会取得其它匹配所生成的对象.
 
     method TOP($/) {
         my %result;
@@ -748,17 +739,15 @@ the `entries` action method. While `make` attaches something to `$/`, the
         make %result;
     }
 
-Thus, the top-level hash gets the hashes produced by the `entries` action
-method installed into it, by section name.
+所以，最顶层的 head 取得的是由 `entries` 动作的方法所产生的块的名字.
 
 ## Actions example: parsing with actions
 
-The actions are passed as a named parameter to `parse`:
+动作可以直接传参数给 `parse` 方法:
 
     my $m := INIFile.parse($to_parse, :actions(INIFileActions));
 
-The result hash can be obtained from the resulting match object using the
-`.ast`, as we already saw.
+这整个结果的哈希是由 `.ast` 取到的所有匹配对象的内容。
 
     my %sections := $m.ast;
     for %ini -> $sec {
@@ -791,11 +780,10 @@ http://irclog.perlgeek.de/perl6/2013-07-19/text
 
 ## Another example: SlowDB
 
-Parsing INI files is a nice introductory example, but feels a long way from a
-compiler. As a step in that direction, we'll build a small, stupid, in-memory
-database with a query interpreter.
+解析 INI 文件是一个很好的入门例子，但感觉离编译器还有很长的路。我们这个方向迈出的一步
+我们将建立一个小的，可用的，在内存中一个数据库查询的翻译的程序。
 
-It should work something like this:
+它应该像这样：
 
     INSERT name = 'jnthn', age = 28
     [
@@ -1066,10 +1054,10 @@ are compiled.
 
 ## From start to finish
 
-Now we know a bit about NQP as a language, it's time to dive under the covers
-and see what happens when we feed NQP a program to run.
+现在我们对 NQP 这个语言有些了解, 现在我们看看 NQP 程序在
+运行时做了些什么和时间花在哪了？
 
-To start with, we'll consider this simple example...
+首先，我们会考虑这个简单的例子 
 
     nqp -e "say('Hello, world')"
 
@@ -1079,9 +1067,8 @@ We'll choose the JVM backend to examine this.
 
 ## The "stagestats" option
 
-We can get an insight into what is going on inside of NQP by running it with
-the `--stagestats` option, which shows the times for each of the stages that
-the compiler goes through.
+我们可以通过 `--stagestats` 的选项来看 NQP 内部在运行时做了些
+什么事情. 这可以显示每一步编译的过程所花的时间:
 
     Stage start      :   0.000      # Startup
     Stage classname  :   0.010      # Compute classname
@@ -1092,10 +1079,11 @@ the compiler goes through.
     Stage jar        :   0.000      # Maybe make a JAR
     Stage jvm        :   0.002      # Actually run the code
 
-## Dumping the parse tree
+下面的步骤其实就是打印的 Stage 中的详细内容
 
-We can get a dump of some of the stages. For example, `--target=parse` will
-produce a dump of the parse tree.
+## Dump 解析树 
+
+我们可以给步骤中的解析部分 Dump 出来. 例如, --target=parse 会给解析树给 dump 出来
 
     - statementlist: say('Hello world')
       - statement: 1 matches
@@ -1115,8 +1103,7 @@ produce a dump of the parse tree.
 
 ## Dumping the AST
 
-Also sometimes useful is `--target=ast`, which dumps the QAST (output below
-has been simplified).
+同样，使用 --target=ast 也是可以看到 AST 是怎么样工作的, 这个用于 dumps QAST.
 
     - QAST::CompUnit
       - QAST::Block
@@ -1152,9 +1139,8 @@ of it below to illustrate). :-)
 
 ## Going inside
 
-Our journey starts in NQP's `MAIN` sub, located in `src/NQP/Compiler.nqp`.
-Here is a slightly simplified version (stripped out setting up command line
-options and other minor details).
+我们来看 NQP 代码的 `MAIN` 函数, 它在 `src/NQP/Compiler.nqp`. 
+这是一个简化的版本 (去掉了一些命令行选项和其它小的细节)
 
     class NQP::Compiler is HLL::Compiler {
     }
@@ -1171,34 +1157,31 @@ options and other minor details).
 
 ## The HLL::Compiler class
 
-The `command_line` method is inherited from HLL::Compiler, located in
-`src/HLL/Compiler.nqp`. This class contains the logic that orchestrates the
-compilation process.
+`命令行` 的方法是继承自 HLL::Compiler, 代码路径是 `src/HLL/Compiler.nqp`. 
+这个类包含一些编译程序的逻辑处理。
 
-Its functionality includes:
+它的功能包括:
 
-* Argument processing (delegates to HLL::CommandLine)
-* Reading source files in from disk
-* Invoking each of the stages, stopping at `--target` if specified
-* Providing a REPL
-* Providing a pluggable way to handle uncaught exceptions
+* 参数的处理 （代表文件 HLL::CommandLine） 
+* 从硬盘读取源代码
+* 调用上面步骤中的每一步， 如果指定了 `--target` 会在指定的这步停止.
+* 提供 REPL
+* 提供可插件的方式来处理未捕获的异常
 
 ## The path through HLL::Compiler
 
-**`command_line`** parses the arguments, then invokes `command_eval`
+**`command_line`** 解析参数，然后调用 `command_eval`
 
-**`command_eval`** works out, based on the arguments, if we should load source
-files from disk, obtain source from `-e` or enter the REPL. The paths invoke a
-range of methods, but all converge back in `eval`.
+**`command_eval`** 会处理参数，如果需要从硬盘加载文件， 会从 `-e` or enter the REPL 来取得源文件.
+这些路径可能会调用一系列的方法， 但最后都会放到 `eval`.
 
-**`eval`** calls `compile` to compile the code, then invokes it
+**`eval`** 调用 `compile` 编译代码，然后调用它 
 
-**`compile`** loops through the stages, passing the result of the previous one
-as the input to the next one
+**`compile`** 会一步步按阶段循环调用, 然后给前一个阶段的输出做为下一个阶段的输入.
 
-## A simplified version of compile
+## 一个简化版本的编译 
 
-Big takeaway: stages are methods on the compiler object or a backend object.
+Big takeaway: 对于编译对象和后端对象来讲， 阶段 stages 是一个方法.
 
     method compile($source, :$from, *%adverbs) {
         my $target := nqp::lc(%adverbs<target>);
@@ -1218,14 +1201,13 @@ Big takeaway: stages are methods on the compiler object or a backend object.
         return $result;
     }
 
-## Stage management
+## 每一个阶段 Stage 的管理
 
-It's possible for compilers to insert extra stages into the pipeline. For
-example, Rakudo inserts its optimizer.
+编译器可以在各个阶段输入扩展的 stages. 例如， Rakudo 插入它自己的优化.
 
     $comp.addstage('optimize', :after<ast>);
 
-Then, in `Perl6::Compiler`, it provides an `optimize` method:
+在这， `Perl6::Compiler`， 它提供了一个 `optimize` 的方法:
 
     method optimize($ast, *%adverbs) {
         %adverbs<optimize> eq 'off' ??
@@ -1233,35 +1215,30 @@ Then, in `Perl6::Compiler`, it provides an `optimize` method:
             Perl6::Optimizer.new.optimize($ast, |%adverbs)
     }
 
-## Frontends and backends
+## 前端和后端 
 
-Earlier, we saw that `compile` looks for stage methods on the current compiler
-object, then on a backend object.
+早些时候，我们所到 `compile` 只是后端对象在当前编译器上的一个方法.
 
-The **compiler object** is **about the language** that we are compiling (NQP,
-Perl 6, etc.) We collectively call these stages the **frontend**.
+**compiler object** 是对语言做的操作， 如 (NQP, Perl 6, etc.)，在这我们统称这些为 **前端** 阶段.
 
-The **backend object** is **about the target VM** that we want to produce code
-for (Parrot, JVM, MoarVM, etc.) It is not tied to any particular language. We
-collectively call these stages the **backend**.
+**backend object** 是对目标 VM** (Parrot, JVM, MoarVM, etc.) 中我们想产生的代码。 
+它不依赖于任何特定的语言。我们统称这些阶段的 **后端**。
 
 ![30%](eps/frontend-backend.eps)
 
-## Frontends, backends, and the QAST between them
+## 前端后端之间是 QAST
 
 ![30%](eps/frontend-backend-qast-between.eps)
 
-The last stage in the front end always gives a **QAST tree**, and the first
-stage in a backend always expects one.
+对于前端，最后一步总是 **QAST tree**, 而对于后端这总是第一步.
 
 A **cross-compiler setup** simply has a backend different from the current VM we
 are running on.
 
-## Parsing in NQP
+## 解析 NQP
 
-The parse stage invokes `parse` on the language's grammar (for our case,
-NQP::Grammar), passing the source code and `NQP::Actions`. It may also turn on
-tracing.
+解析的阶段调用 grammar 上的  `parse` (我们是使用的 NQP::Grammar)，
+用它来解析这些源代码和 `NQP::Actions`。它也可以跟踪解析流程. 
 
     method parse($source, *%adverbs) {
         my $grammar := self.parsegrammar;
