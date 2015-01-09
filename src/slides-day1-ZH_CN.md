@@ -990,42 +990,33 @@ candidate - and thus `$<value>.ast` will obtain the correct thing.
 
 ## Exercise 3
 
-A chance to practice with protoregexes a bit, and study for yourself what we
-have been looking through.
+我们现在有机会使用 protoregexes ，我们通过这些东西来学习它.
 
-Take the SlowDB example that we have been considering. Add support for the
-`UPDATE` and `DELETE` queries.
+现在我们看 SlowDB 的例子， 我们一直想支持 `UPDATE` 和 `DELETE` 的查询.
 
-## Limitations and other differences from full Perl 6
+## 相对于 Perl 6 的局限性和其他方面的差异 
 
-Here's an assortment of other things worth knowing.
+这些东西值得了解。
 
-* There is a `use` statement, but it expects anything that it uses to have
-  been pre-compiled already.
-* There is no array flattening; `[@a, @b]` is always an array of 2 elements
+* `use` 声明，但我们期望它使用时已预编译了.
+* 没有数组扁平化; `[@a, @b]` 始终是数组的 2 个元素
 * The hash composer `{}` only works for empty hashes; anything other than that
   will be treated as a block
-* `BEGIN` blocks exist but are highly constrained in what they can see in the
-  outer scope (only types, not variables)
+* `BEGIN` 块存在， 但是存在的空间范围只在所能见到的范围 (only types, not variables)
 
-## Backend differences
+## 后端的差异 
 
-NQP on JVM and MoarVM are relatively consistent. NQP on Parrot is the odd one
-out: not everything is a 6model object. That is, while `.WHAT` or `.HOW` will
-work on anything in NQP on JVM and MoarVM, it may fail on Parrot. This happens
-on integer, number and string literals, arrays and hashes, exceptions and some
-kinds of code object.
+JVM 和 MoarVM 上的 NQP 是相对一致. Parrot 的 NQP 上奇异一些： 不是所有的东西都是 6model 对象。
+这样， 在 JVM and MoarVM 中的 `.WHAT` 和 `.HOW` 都能正常工作。但 Parrot 可能会失败.
+这可种失败可能会在整数， 数字和字符串， 数组与哈希， 等各种代码的对象上.
 
-Exception handlers also work out a bit differently. Those on JVM and MoarVM
-run on the stack top at the point of the exception throw, as is the Perl 6
-semantics. Those in NQP on Parrot will unwind then run, with resumption being
-provided by a continuation. Note that Rakudo is consistent on this on all
-backends.
+异常处理的解决方案也不太一样。 在 JVM 和 MoarVM 上异常会在运行在栈顶。
 
-## Overall...
+在 Parrot 中不是这样， 异常时会不运行， 恢复时会延续. 注意 Rakudo 对所有后台是一样的.
 
-NQP, despite being a relatively small subset of Perl 6, still packs in quite
-a few powerful language features.
+## 整体的...
+
+尽管 NQP 是 Perl 6 的一个相对较小的子集，仍然包在相当多的强大的语言特征。
 
 Generally, demand for them has been driven by what was needed by those working
 on Rakudo. As a result, NQPs feature set is shaped by compiler-writing needs.
@@ -1239,8 +1230,8 @@ are running on.
 
 ## NQP::Grammar.TOP (1)
 
-As in the grammars we already saw, execution starts in `TOP`. In NQP, we find
-it's actually a `method`, not a `token` or `rule`!
+在 grammars 中我们见过了， 从 `TOP` 的顶部开始执行。 在 NQP 内， 我们发现
+它实际是一种 `方法调用`, 并不是所谓的 `token` or `rule`!
 
     method TOP() {
         # Various things we'll consider in a moment.
@@ -1250,14 +1241,13 @@ it's actually a `method`, not a `token` or `rule`!
         self.comp_unit;
     }
 
-This is actually OK, so long as it ultimately returns a `Cursor` object. And
-since `comp_unit` will return one, it all works out just fine.
+这是可以的，它只是返回 `Cursor` 对象，然后 `comp_unit` 会返回 一它就行了。
 
-It's a method as it doesn't do any parsing, just setup work.
+这个方法，因为它不做任何解析，只是设置 work。
 
 ## NQP::Grammar.TOP (2)
 
-The first thing that `TOP` does is set up a **language braid**.
+这个 `TOP` 首先做的是设置 **language braid**.
 
     my %*LANG;
     %*LANG<Regex>         := NQP::Regex;
