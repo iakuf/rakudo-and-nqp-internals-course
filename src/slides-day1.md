@@ -1,21 +1,18 @@
-title: Rakudo and NQP Internals
+title: Rakudo 和 NQP 内部结构
 subtitle: The guts tormented implementers made
 author: Jonathan Worthington
 
-## About This Course
+## 关于这门课程
 
-Perl 6 is a large language, incorporating many features that are demanding to
-implement correctly.
+Perl 6 是一个大型语言, 合并收集了大量的特性并且要正确的实现.
 
-It's easy for such a software project to be drowned by unmanaged complexity.
-Earlier phases of the Rakudo and NQP projects have suffered in this way, as we
-learned - the hard way - about the complexities that arose and could spread
-unchecked over the implementation.
+这样的项目很容易由于复杂性而死掉， Rakudo 和 NQP 早期其实
+就出现了这样的问题, 我们知道这很难，这种复杂度上来实现.
 
-This course will teach you how to work with Rakudo and NQP internals. Encoded
-in their design is a wealth of learning, built up over years, about how (and
-how not) to write a Perl 6 implementation. Thus, this course will also teach
-you why things are the way they are.
+本教程会教你使用 Rakudo 和 NQP 。
+
+设计一个程序语言是一个很好的学习过程， 我们花了多年.
+这个教程会教如何写一个 Perl 6 的实现， 并且会告诉你为什么会这样设计.
 
 ## About The Teacher
 
@@ -28,19 +25,19 @@ you why things are the way they are.
 
 ## Course overview - Day 1
 
-* The eagle's eye view: Compilers, and the NQP/Rakudo Architecture
-* The NQP Language
-* The compilation pipeline
+* 总览： 编译器和 NQP/Rakudo 的架构
+* 有关 NQP 的语言
+* The compilation pipeline 编译管道
 * QAST
-* Exploring nqp:: ops
+* 摸索 nqp:: ops
 
 ## Course overview - Day 2
 
 * 6model
 * Bounded Serialization and Module Loading
 * The regex and grammar engine
-* The JVM backend
-* The MoarVM backend
+* JVM  backend
+* MoarVM backend
 
 # The eagle's eye view
 
